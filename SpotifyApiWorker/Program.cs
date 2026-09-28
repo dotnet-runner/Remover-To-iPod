@@ -1,4 +1,5 @@
 using System.Text;
+using SpotifyApiWorker.Middlewares;
 using SpotifyApiWorker.Services.Contracts;
 using SpotifyApiWorker.Services.Implementations;
 using StackExchange.Redis;
@@ -36,5 +37,6 @@ else
 }
 
 app.MapControllers();
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 app.Run();

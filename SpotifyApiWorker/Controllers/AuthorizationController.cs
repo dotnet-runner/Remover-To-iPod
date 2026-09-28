@@ -36,14 +36,13 @@ public class AuthorizationController : ControllerBase
         
         Response.Cookies.Append("_userSessionKey", key.ToString(),
             _cookieSetting.SpotifyStateSessionOptions());
-        
         return Redirect(authUri);
     }
-    
+
     [HttpGet("callback")]
-    public async Task<IActionResult> Callback([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? error = null)
+    public async Task<IActionResult> Callback([FromQuery] string? code, [FromQuery] string? state,
+        [FromQuery] string? error = null)
     {
-        //Thread.Sleep(ICookieSetting.SessionTime);
         if (error is not null)
             return Unauthorized("Authorization Error");
         
@@ -56,45 +55,22 @@ public class AuthorizationController : ControllerBase
         _ = _redis.DeleteAsync(new(userSessionKey));
         Response.Cookies.Delete("_userSessionKey");
 
-        try
-        {
-            var authCode = await _authorization.TryGetAuthorizationCode(code);
-            var accessToken = authCode.AccessToken;
-            
-            if (string.IsNullOrWhiteSpace(accessToken))
-                throw new AccessTokenException();
-
-            var accessTokenKey = _sessionKeyGenerator.Generate();
-            await _redis.WriteAsync(accessTokenKey, accessToken);
-            Response.Cookies.Append("auth_id", accessTokenKey);
-            
-            /*var spotify = new SpotifyClient(accessToken);
-            var user = await spotify.UserProfile.Current();*/
-            
-            return Ok(Redirect("api/Authorization/me"));
-        }
-        catch (NoAuthorizationCodeException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (AuthorizationCodeTokenException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (AccessTokenException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (APIException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
+        var authCode = await _authorization.TryGetAuthorizationCode(code);
+        var accessToken = authCode.AccessToken;
+        
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new AccessTokenException();
+        
+        var accessTokenKey = _sessionKeyGenerator.Generate();
+        await _redis.WriteAsync(accessTokenKey, accessToken);
+        Response.Cookies.Append("auth_id", accessTokenKey);
+        
+        /*var spotify = new SpotifyClient(accessToken);
+        var user = await spotify.UserProfile.Current();*/
+        
+        return Ok(Redirect("api/Authorization/me"));
     }
-
+    
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
@@ -105,19 +81,12 @@ public class AuthorizationController : ControllerBase
         
         if(string.IsNullOrWhiteSpace(accessTokenId))
             return BadRequest("Authorization Error");
-
+        
         var accessToken = await _redis.GetAsync(accessTokenId);
-
+        
         var spotify = new SpotifyClient(accessToken);
-        try
-        {
-            var user = await spotify.UserProfile.Current();
-            return Ok(user);
-        }
-        catch (APIException ex)
-        {
-            Console.Write(ex.Response.Body);
-            return BadRequest(ex.Message);
-        }
+            
+        var user = await spotify.UserProfile.Current();
+        return Ok(user);
     }
 }
