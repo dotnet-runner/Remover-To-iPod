@@ -22,6 +22,4 @@ public class CookieSetting: ICookieSetting
         _baseOptions.SameSite = SameSiteMode.Lax;
         return AuthSessionOptions(ICookieSetting.SessionTime);
     }
-    
-    //public CookieOptions BaseCookie
 }

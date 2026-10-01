@@ -1,4 +1,3 @@
-using System.Text;
 using SpotifyApiWorker.Middlewares;
 using SpotifyApiWorker.Services.Contracts;
 using SpotifyApiWorker.Services.Implementations;
@@ -16,13 +15,12 @@ builder.Services.Configure<RouteOptions>(options =>
 });
 
 builder.Services.AddSingleton<IServerSessionKeyGenerator, ServerSessionKeyGenerator>();
-builder.Services.AddSingleton<IConnectionMultiplexer>(options =>
+builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(builder.Configuration.GetValue<string>("Redis:ConnectionString")!));
 
 builder.Services.AddScoped<IAuthorization, Authorization>();
 builder.Services.AddScoped<ICookieSetting, CookieSetting>();
 builder.Services.AddScoped<IRedisService, RedisService>();
-
 
 var app = builder.Build();
 

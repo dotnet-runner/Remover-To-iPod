@@ -15,8 +15,6 @@ public class Authorization: IAuthorization
         {
             State = State,
             Scope = [Scopes.UserReadPrivate, Scopes.UserReadEmail, Scopes.PlaylistReadPrivate]
-            /*Scope = [Scopes.UgcImageUpload, Scopes.UserReadPlaybackState, Scopes.UserModifyPlaybackState,
-                Scopes.UserReadCurrentlyPlaying, Scopes.Streaming, Scopes.AppRemoteControl, Scopes.UserReadEmail, Scopes.UserReadPrivate, Scopes.PlaylistModifyPublic, Scopes.PlaylistReadPrivate, Scopes.PlaylistModifyPrivate, Scopes.UserLibraryModify, Scopes.UserLibraryRead, Scopes.UserTopRead, Scopes.UserReadPlaybackPosition, Scopes.UserReadRecentlyPlayed, Scopes.UserFollowRead, Scopes.UserFollowModify]*/
         };
         
         return login.ToUri();

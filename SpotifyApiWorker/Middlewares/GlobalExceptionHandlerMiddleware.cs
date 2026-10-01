@@ -18,7 +18,7 @@ public sealed class GlobalExceptionHandlerMiddleware(RequestDelegate next)
             {
                 NoAuthorizationCodeException or APIException 
                     => StatusCodes.Status400BadRequest,
-                AccessTokenException 
+                AccessTokenException
                     => StatusCodes.Status401Unauthorized,
                 AuthorizationCodeTokenException 
                     => StatusCodes.Status403Forbidden,

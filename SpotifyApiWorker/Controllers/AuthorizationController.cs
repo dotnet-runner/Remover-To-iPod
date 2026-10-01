@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SpotifyAPI.Web;
 using SpotifyApiWorker.Exceptions;
+using SpotifyApiWorker.Infrastructure;
 using SpotifyApiWorker.Services.Contracts;
 
 namespace SpotifyApiWorker.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthorizationController : ControllerBase
+public sealed class AuthorizationController : ControllerBase
 {
     private readonly IAuthorization _authorization;
     private readonly IServerSessionKeyGenerator _sessionKeyGenerator;
@@ -26,19 +27,19 @@ public class AuthorizationController : ControllerBase
     [HttpGet("login")]
     public async Task<IActionResult> Login()
     {
-        if (Request.Cookies["auth_id"] is not null)
-            Ok();
+        if (Request.Cookies[CookieNames.SpotifySessionId] is not null)
+            return Redirect("/api/authorization/me");
         
         var authUri = _authorization.CreateAuthorizationUri().ToString();
-        var key = _sessionKeyGenerator.Generate();
+        var sessionId = _sessionKeyGenerator.Generate();
         
-        await _redis.WriteAsync(key, _authorization.State, ICookieSetting.SessionTime);
+        await _redis.WriteAsync(sessionId, _authorization.State, ICookieSetting.SessionTime);
         
-        Response.Cookies.Append("_userSessionKey", key.ToString(),
+        Response.Cookies.Append(CookieNames.ScopeSessionId, sessionId.ToString(),
             _cookieSetting.SpotifyStateSessionOptions());
         return Redirect(authUri);
     }
-
+    
     [HttpGet("callback")]
     public async Task<IActionResult> Callback([FromQuery] string? code, [FromQuery] string? state,
         [FromQuery] string? error = null)
@@ -46,38 +47,35 @@ public class AuthorizationController : ControllerBase
         if (error is not null)
             return Unauthorized("Authorization Error");
         
-        var userSessionKey = Request.Cookies["_userSessionKey"] ?? string.Empty;
+        var userSessionKey = Request.Cookies[CookieNames.ScopeSessionId] ?? string.Empty;
         var sessionState = await _redis.GetAsync(userSessionKey);
         
         if (sessionState != state)
             return BadRequest("Authorization Error, cookie is not correct");
         
         _ = _redis.DeleteAsync(new(userSessionKey));
-        Response.Cookies.Delete("_userSessionKey");
-
+        Response.Cookies.Delete(CookieNames.ScopeSessionId);
+        
         var authCode = await _authorization.TryGetAuthorizationCode(code);
         var accessToken = authCode.AccessToken;
         
         if (string.IsNullOrWhiteSpace(accessToken))
             throw new AccessTokenException();
         
-        var accessTokenKey = _sessionKeyGenerator.Generate();
-        await _redis.WriteAsync(accessTokenKey, accessToken);
-        Response.Cookies.Append("auth_id", accessTokenKey);
+        var accessTokenId = _sessionKeyGenerator.Generate();
+        await _redis.WriteAsync(accessTokenId, accessToken);
+        Response.Cookies.Append(CookieNames.SpotifySessionId, accessTokenId);
         
-        /*var spotify = new SpotifyClient(accessToken);
-        var user = await spotify.UserProfile.Current();*/
-        
-        return Ok(Redirect("api/Authorization/me"));
+        return Ok();
     }
     
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
-        if (Request.Cookies["auth_id"] is null)
+        if (Request.Cookies[CookieNames.SpotifySessionId] is null)
             return Unauthorized();
         
-        var accessTokenId = Request.Cookies["auth_id"];
+        var accessTokenId = Request.Cookies[CookieNames.SpotifySessionId];
         
         if(string.IsNullOrWhiteSpace(accessTokenId))
             return BadRequest("Authorization Error");

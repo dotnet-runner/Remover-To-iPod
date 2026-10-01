@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using SpotifyApiWorker.Services.Contracts;
 using SpotifyApiWorker.ValueObjects;
 
